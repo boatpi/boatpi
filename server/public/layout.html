@@ -1,0 +1,26 @@
+<html>
+<head>
+    <title>{% block title %}BoatPi{% end %}</title>
+
+    {% block stylesheets %}
+        <link rel="stylesheet" href="{{ static_url('style.css') }}" />
+    {% end %}
+</head>
+<body>
+    <header>
+        {% block header %}{% end %}
+    </header>
+    <content>
+        {% block content %}{% end %}
+    </content>
+    <footer>
+        {% block footer %}{% end %}
+    </footer>
+
+    {% block javascripts %}
+        <script src="{{ static_url('boatpi.js') }}"></script>
+        <script src="{{ static_url('jquery-3.2.1.slim.min.js') }}"></script>
+        <script src="{{ static_url('main.js') }}"></script>
+    {% end %}
+</body>
+</html>

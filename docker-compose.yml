@@ -1,0 +1,17 @@
+version: '2.3'
+
+
+services:
+  boat:
+    build: boat
+    restart: always
+    volumes:
+      - ./boat/:/srv/
+
+  server:
+    build: server
+    restart: always
+    environment:
+      BOATPI_WS: ws://boat:8000/ws
+    volumes:
+      - ./server/:/srv/
