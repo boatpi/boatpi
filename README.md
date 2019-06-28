@@ -2,6 +2,9 @@ BoatPi
 ======
 An analog Boat into a Digital Ocean
 
+> This is a work in progres project, we are working hard to sail soon.
+>> SO STAY TUNED!
+
 ## For developers and local testing
 ### With Docker
 Create your own `docker-compose.override.yml` file with ports mapping as you like
