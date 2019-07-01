@@ -6,8 +6,11 @@ $(() => {
 
     const boatpi = new BoatPi(webSocketUri);
 
-
     setTimeout(() => {
         boatpi.authenticate('Tizio', 'Qualunque');
     }, 1000);
+
+    setTimeout(() => {
+        boatpi.captain({power:1, wheel:2})
+    }, 2000);
 });

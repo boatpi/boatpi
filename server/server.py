@@ -79,6 +79,7 @@ class WSHandler(WebSocketHandler):
         WSHandler.clients.append(self)
         WSHandler.viewers.append(self)
         logging.info("A new client connected, there are %d admins and %d viewers connected", len(self.admins), len(self.viewers))
+        self.write_message({'boat': 'ONLINE' if (boat.ws is not None) else 'OFFLINE'})
 
     def on_close(self):
         WSHandler.clients.remove(self)
@@ -106,6 +107,8 @@ class WSHandler(WebSocketHandler):
             else:
                 logging.info("Authentication failure")
                 self.write_message(json.dumps({'event': 'authentication', 'status': 'failure'}))
+        else:
+            boat.captain(data)
 
     def check_origin(self, origin):
         return True
@@ -180,9 +183,15 @@ class BoatPi:
 
             self.on_message(msg)
 
+    def captain(self, message):
+        if self.ws is not None:
+            self.ws.write_message(json.dumps(message))
+
     @coroutine
     def on_message(self, message):
-        WSHandler.talk_to_all(message)
+        data = json.loads(message)
+
+        WSHandler.talk_to_all(data)
 
     def keep_alive(self):
         """Re-connect is connection got lost"""

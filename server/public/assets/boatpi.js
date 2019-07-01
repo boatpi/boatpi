@@ -69,6 +69,21 @@ class BoatPi {
         this.websocket.send(JSON.stringify(data));
     }
 
+    captain(data) {
+        if (!this.websocket instanceof WebSocket || this.websocket.readyState !== WebSocket.OPEN) {
+            return;
+        }
+
+        if (!this.authToken) {
+            console.error('You are not authenticated, only Captains can put commands to the boat.');
+            return;
+        }
+
+        data.action = 'captain';
+
+        this.websocket.send(JSON.stringify(data));
+    }
+
     authenticate(username, password) {
         this.sendMessage({
             action: 'authenticate',

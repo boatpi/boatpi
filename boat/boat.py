@@ -4,7 +4,10 @@ import json
 import hashlib
 import logging
 import os
+import psutil
 import structlog
+
+from math import sin, cos, pi
 
 from tornado import autoreload
 from tornado.gen import coroutine, sleep
@@ -63,7 +66,7 @@ class HomeHandler(RequestHandler):
     """Serves application home information."""
 
     async def get(self, *args, **kwargs):
-        return "READY"
+        return "READY TO SAIL"
 
     def data_received(self, chunk):
         """Defined to avoid abstract-method lint issue."""
@@ -89,7 +92,8 @@ class WSHandler(WebSocketHandler):
         logging.info('Received ' + message)
         data = json.loads(message)
 
-        self.talk_to_clients(data)
+        if 'power' in data and 'wheel' in data:
+            Status.move(data['power'], data['wheel'])
 
     def check_origin(self, origin):
         return True
@@ -106,19 +110,69 @@ class WSHandler(WebSocketHandler):
                 logging.error('Error sending message', exc_info=True)
 
 
-class Status(object):
+class Status:
     """A class that talks with the boat on the sea."""
 
-    def __init__(self):
-        self.counter = 0
+    power = 0 # How many power give to the main boat's motor
+    wheel = 0 # How is the boat's wheel set
 
+    def __init__(self):
         PeriodicCallback(self.collect, 1000).start()
 
     @coroutine
     def collect(self):
         """Setup the connection to the boat."""
-        self.counter = self.counter + 1
-        WSHandler.talk_to_clients(self.__dict__)
+
+        data = dict()
+
+        data['cpu_load'] = psutil.cpu_percent(interval=1)
+        data['memory'] = Status.get_memory_data()
+        data['gps_position'] = GpsTracker.get_data()
+        data['power'] = Status.power
+        data['wheel'] = Status.wheel
+
+        WSHandler.talk_to_clients(data)
+
+        # Simulate that boat is moving
+        # TODO: Remove this when going into the sea
+        GpsTracker.speed = Status.power/1.354
+        GpsTracker.direction = Status.wheel**1.354
+        GpsTracker.latitude = GpsTracker.latitude+GpsTracker.speed*cos(GpsTracker.direction)
+        GpsTracker.longitude = GpsTracker.longitude+GpsTracker.speed*sin(GpsTracker.direction)
+
+    @classmethod
+    def get_memory_data(self):
+        virtual = psutil.virtual_memory()
+        return {
+            'total': virtual.total,
+            'available': virtual.available,
+            'used': virtual.used,
+            'free': virtual.free,
+            'percent': virtual.percent,
+        }
+
+    @classmethod
+    def move(self, power, wheel):
+        Status.power = power
+        Status.wheel = wheel
+
+
+class GpsTracker(object):
+    """A class that talks GPS module and stores geographic position data."""
+
+    latitude = 41.9027835
+    longitude = 12.496365500000024
+    speed = 0.0
+    direction = 0.0
+
+    @classmethod
+    def get_data(self):
+        return {
+            'latitude': GpsTracker.latitude,
+            'longitude': GpsTracker.longitude,
+            'speed': GpsTracker.speed,
+            'direction': GpsTracker.direction,
+        }
 
 
 class Application(BaseApplication):
@@ -141,7 +195,6 @@ if __name__ == "__main__":
         log.info("Starting applications", mode="single")
         Application().listen(app_settings["port"])
         autoreload.start()
-        autoreload.watch(r'public/')
     else:
         log.info("Starting applications", mode="forked", cpu_count=cpu_count())
         server = HTTPServer(Application())

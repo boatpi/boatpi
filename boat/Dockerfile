@@ -1,6 +1,8 @@
 FROM python:3.7-alpine3.9
 
-RUN apk add --update --no-cache build-base
+RUN apk add --update --no-cache \
+    build-base \
+    linux-headers
 
 COPY requirments.txt /srv/
 
