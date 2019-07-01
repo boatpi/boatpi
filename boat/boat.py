@@ -134,8 +134,8 @@ class Status:
         WSHandler.talk_to_clients(data)
 
         # Simulate that boat is moving
-        # TODO: Remove this when going into the sea
-        GpsTracker.speed = Status.power/1.354
+        # TODO: Remove this before sail
+        GpsTracker.speed = Status.power/186.3547
         GpsTracker.direction = Status.wheel**1.354
         GpsTracker.latitude = GpsTracker.latitude+GpsTracker.speed*cos(GpsTracker.direction)
         GpsTracker.longitude = GpsTracker.longitude+GpsTracker.speed*sin(GpsTracker.direction)

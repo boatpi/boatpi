@@ -50,7 +50,8 @@ class BoatPi {
                             dispatchEvent(new Event('boatpi.authentication.failure'));
                         }
                     } else {
-                        console.warn(data);
+                        console.debug(data);
+                        document.dispatchEvent(new CustomEvent('boatpi.update', {detail: data}));
                     }
                 } catch (err) {
                     console.error(message.data)

@@ -17,15 +17,16 @@ from tornado.web import Application as BaseApplication
 from tornado.web import RequestHandler, StaticFileHandler
 from tornado.websocket import WebSocketHandler, websocket_connect
 
+import uimodules
 
 app_settings = {
     "default_handler_args": dict(status_code=404),
     "env": os.environ.get("ENV", "dev"),
     "log_level": os.environ.get("LOG_LEVEL", "INFO"),
     "port": os.environ.get("APP_PORT", "8000"),
-    "static_path": os.path.join(os.path.dirname(__file__), "public/assets"),
+    "static_path": os.path.join(os.path.dirname(__file__), "assets"),
     "static_url_prefix": "/assets/",
-    "template_path": os.path.join(os.path.dirname(__file__), "public"),
+    "template_path": os.path.join(os.path.dirname(__file__), "templates"),
     "boatpi_ws": os.environ.get("BOATPI_WS", "ws://localhost:8001/ws"),
     "websocket_ping_interval": 10,
     "compression_options": {},
@@ -57,9 +58,8 @@ class HomeHandler(RequestHandler):
 
     async def get(self, *args, **kwargs):
         """A function that will return the content for the home endpoint."""
-        log.info("Endpoint hit", handler="home")
-        items = ["Item 1", "Item 2", "Item 3"]
-        self.render("home.html", title="My title", items=items)
+
+        self.render("home.html")
 
     def data_received(self, chunk):
         """Defined to avoid abstract-method lint issue."""
@@ -206,10 +206,13 @@ class Application(BaseApplication):
 
     def __init__(self):
         """Setup the routes and import the application settings."""
+
         app_handlers = [
             ("/", HomeHandler),
             ("/ws", WSHandler),
         ]
+
+        app_settings["ui_modules"] = uimodules
 
         super().__init__(app_handlers, **app_settings)
 
@@ -221,7 +224,9 @@ if __name__ == "__main__":
         log.info("Starting applications", mode="single")
         Application().listen(app_settings["port"])
         autoreload.start()
-        autoreload.watch(r'public/')
+        autoreload.watch(r'assets/')
+        autoreload.watch(r'templates/')
+        autoreload.watch(r'templates/modules/')
     else:
         log.info("Starting applications", mode="forked", cpu_count=cpu_count())
         server = HTTPServer(Application())

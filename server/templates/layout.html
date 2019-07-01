@@ -1,0 +1,22 @@
+<html>
+<head>
+    <title>{% block title %}BoatPi{% end %}</title>
+    <link rel="stylesheet" href="{{ static_url('style.css') }}" />
+</head>
+<body>
+    <header>
+        {% block header %}<h1>BoatPi</h1>{% end %}
+    </header>
+    <content>
+        {% block content %}{% end %}
+    </content>
+    <footer>
+        {% block footer %}{% end %}
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/jquery@3.4.1/dist/jquery.slim.min.js"></script>
+    <script src="{{ static_url('boatpi.js') }}"></script>
+    <script src="{{ static_url('main.js') }}"></script>
+</body>
+</html>
