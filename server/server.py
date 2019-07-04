@@ -43,12 +43,10 @@ log = structlog.get_logger()
 
 options.logging = None  # configure Tornado to leave logging alone
 
-
 admin_tokens = [
     # Tizio Qualunque
     "10df398b4321258ad07e7127080bc497d80818b77b8cc38f4e8fd2992ec7fa497154d222e844fb48743008ecfa05d9f8446012ed5d1f92cc7e10d649cdf38c50"
 ]
-
 
 boat = None
 
@@ -60,6 +58,18 @@ class HomeHandler(RequestHandler):
         """A function that will return the content for the home endpoint."""
 
         self.render("home.html")
+
+    def data_received(self, chunk):
+        """Defined to avoid abstract-method lint issue."""
+        pass
+
+
+class CockpitHandler(RequestHandler):
+
+    async def get(self, *args, **kwargs):
+        """A function that will return the content for the home endpoint."""
+
+        self.render("cockpit.html")
 
     def data_received(self, chunk):
         """Defined to avoid abstract-method lint issue."""
@@ -78,14 +88,16 @@ class WSHandler(WebSocketHandler):
     def open(self):
         WSHandler.clients.append(self)
         WSHandler.viewers.append(self)
-        logging.info("A new client connected, there are %d admins and %d viewers connected", len(self.admins), len(self.viewers))
+        logging.info("A new client connected, there are %d admins and %d viewers connected", len(self.admins),
+                     len(self.viewers))
         self.write_message({'boat': 'ONLINE' if (boat.ws is not None) else 'OFFLINE'})
 
     def on_close(self):
         WSHandler.clients.remove(self)
         WSHandler.admins.remove(self)
         WSHandler.viewers.remove(self)
-        logging.info("A client disconnected, there are %d admins and %d viewers connected", len(self.admins), len(self.viewers))
+        logging.info("A client disconnected, there are %d admins and %d viewers connected", len(self.admins),
+                     len(self.viewers))
 
     async def on_message(self, message):
         data = json.loads(message)
@@ -97,12 +109,13 @@ class WSHandler(WebSocketHandler):
             if 'token' in data:
                 token = data['token']
             elif 'username' in data and 'password' in data:
-                token = hashlib.sha512((data['username']+'§'+data['password']).encode('utf-8')).hexdigest()
+                token = hashlib.sha512((data['username'] + '§' + data['password']).encode('utf-8')).hexdigest()
 
             if token in admin_tokens:
                 WSHandler.admins.append(self)
                 WSHandler.viewers.remove(self)
-                logging.info("Viewer authenticated successfully, there are %d admins and %d viewers now", len(self.admins), len(self.viewers))
+                logging.info("Viewer authenticated successfully, there are %d admins and %d viewers now",
+                             len(self.admins), len(self.viewers))
                 self.write_message(json.dumps({'event': 'authentication', 'status': 'success', 'token': token}))
             else:
                 logging.info("Authentication failure")
@@ -145,6 +158,7 @@ class WSHandler(WebSocketHandler):
                 client.write_message(serialized)
             except:
                 logging.error('Error sending message', exc_info=True)
+
 
 class BoatPi:
     """A class that talks with the boat on the sea."""
@@ -197,7 +211,7 @@ class BoatPi:
         """Re-connect is connection got lost"""
         if self.ws is None:
             self.connect()
-        #else:
+        # else:
         #    self.ws.write_message(json.dumps("keep alive"))
 
 
@@ -210,6 +224,7 @@ class Application(BaseApplication):
         app_handlers = [
             ("/", HomeHandler),
             ("/ws", WSHandler),
+            ("/cockpit", CockpitHandler),
         ]
 
         app_settings["ui_modules"] = uimodules
@@ -235,4 +250,3 @@ if __name__ == "__main__":
 
     ioloop = IOLoop.instance()
     ioloop.start()
-

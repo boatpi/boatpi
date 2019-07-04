@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import json
-import hashlib
 import logging
 import os
 import psutil
 import structlog
+import time
 
 from math import sin, cos, pi
 
@@ -92,14 +92,23 @@ class WSHandler(WebSocketHandler):
         logging.info('Received ' + message)
         data = json.loads(message)
 
-        if 'power' in data and 'wheel' in data:
-            Status.move(data['power'], data['wheel'])
+        if 'power' in data:
+            Status.power = data['power']
+            self.talk_to_clients({'power': Status.power})
+
+        if 'wheel' in data:
+            Status.wheel = data['wheel']
+            self.talk_to_clients({'wheel': Status.wheel})
+
 
     def check_origin(self, origin):
         return True
 
     @classmethod
     def talk_to_clients(self, message):
+        message['timestamp'] = time.time()
+
+        logging.info(message)
         serialized = json.dumps(message)
         logging.info('Sending ' + serialized)
 
@@ -128,15 +137,13 @@ class Status:
         data['cpu_load'] = psutil.cpu_percent(interval=1)
         data['memory'] = Status.get_memory_data()
         data['gps_position'] = GpsTracker.get_data()
-        data['power'] = Status.power
-        data['wheel'] = Status.wheel
 
         WSHandler.talk_to_clients(data)
 
         # Simulate that boat is moving
         # TODO: Remove this before sail
-        GpsTracker.speed = Status.power/186.3547
-        GpsTracker.direction = Status.wheel**1.354
+        GpsTracker.speed = Status.power/18630.547
+        GpsTracker.direction = Status.wheel
         GpsTracker.latitude = GpsTracker.latitude+GpsTracker.speed*cos(GpsTracker.direction)
         GpsTracker.longitude = GpsTracker.longitude+GpsTracker.speed*sin(GpsTracker.direction)
 
@@ -151,17 +158,12 @@ class Status:
             'percent': virtual.percent,
         }
 
-    @classmethod
-    def move(self, power, wheel):
-        Status.power = power
-        Status.wheel = wheel
-
 
 class GpsTracker(object):
     """A class that talks GPS module and stores geographic position data."""
 
-    latitude = 41.9027835
-    longitude = 12.496365500000024
+    latitude = 40.20528785892592
+    longitude = 16.73439977690578
     speed = 0.0
     direction = 0.0
 
