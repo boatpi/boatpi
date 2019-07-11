@@ -162,8 +162,8 @@ class Status:
 class GpsTracker(object):
     """A class that talks GPS module and stores geographic position data."""
 
-    latitude = 40.20528785892592
-    longitude = 16.73439977690578
+    latitude = 40.203636
+    longitude = 16.728161
     speed = 0.0
     direction = 0.0
 
