@@ -13,5 +13,12 @@ services:
     restart: always
     environment:
       BOATPI_WS: ws://boat:8000/ws
+      MONGO_URI: mongodb://mongo:27017/boatpi
     volumes:
       - ./server/:/srv/
+
+  mongo:
+    image: mongo:4.0
+    environment:
+      MONGO_INITDB_DATABASE: boatpi
+    restart: always

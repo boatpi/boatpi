@@ -19,6 +19,8 @@ from tornado.websocket import WebSocketHandler, websocket_connect
 
 import uimodules
 
+from pymongo import MongoClient
+
 app_settings = {
     "default_handler_args": dict(status_code=404),
     "env": os.environ.get("ENV", "dev"),
@@ -28,6 +30,7 @@ app_settings = {
     "static_url_prefix": "/assets/",
     "template_path": os.path.join(os.path.dirname(__file__), "templates"),
     "boatpi_ws": os.environ.get("BOATPI_WS", "ws://localhost:8001/ws"),
+    "mongo_uri": os.environ.get("MONGO_URI", "mongodb://localhost:27017/boatpi"),
     "websocket_ping_interval": 10,
     "compression_options": {},
 }
@@ -43,12 +46,13 @@ log = structlog.get_logger()
 
 options.logging = None  # configure Tornado to leave logging alone
 
-admin_tokens = [
+crew_tokens = [
     # Tizio Qualunque
     "10df398b4321258ad07e7127080bc497d80818b77b8cc38f4e8fd2992ec7fa497154d222e844fb48743008ecfa05d9f8446012ed5d1f92cc7e10d649cdf38c50"
 ]
 
 boat = None
+boatLogger = None
 
 
 class HomeHandler(RequestHandler):
@@ -76,10 +80,25 @@ class CockpitHandler(RequestHandler):
         pass
 
 
+class MongoLogger():
+    last = dict()
+
+    def __init__(self):
+        self.client = MongoClient(app_settings["mongo_uri"])
+        self.db = self.client.get_default_database()
+        self.collection = self.db["logs"]
+
+    def log(self, data):
+        self.last = dict(self.last)
+        self.last.update(data)
+
+        self.collection.insert_one(self.last.copy())
+
+
 class WSHandler(WebSocketHandler):
     clients = []
-    admins = []
-    viewers = []
+    crew = []
+    passengers = []
 
     def get_compression_options(self):
         # Non-None enables compression with default options.
@@ -87,17 +106,21 @@ class WSHandler(WebSocketHandler):
 
     def open(self):
         WSHandler.clients.append(self)
-        WSHandler.viewers.append(self)
-        logging.info("A new client connected, there are %d admins and %d viewers connected", len(self.admins),
-                     len(self.viewers))
-        self.write_message({'boat': 'ONLINE' if (boat.ws is not None) else 'OFFLINE'})
+        WSHandler.passengers.append(self)
+        logging.info("A new client connected, there are %d crew members and %d passengers connected", len(self.crew),
+                     len(self.passengers))
+        self.write_message({
+            'boat': boatLogger.last if (boat.ws is not None) else None,
+            'crew': len(self.crew),
+            'passengers': len(self.passengers),
+        })
 
     def on_close(self):
         WSHandler.clients.remove(self)
-        WSHandler.admins.remove(self)
-        WSHandler.viewers.remove(self)
-        logging.info("A client disconnected, there are %d admins and %d viewers connected", len(self.admins),
-                     len(self.viewers))
+        WSHandler.crew.remove(self)
+        WSHandler.passengers.remove(self)
+        logging.info("A client disconnected, there are %d crew members and %d passengers connected", len(self.crew),
+                     len(self.passengers))
 
     async def on_message(self, message):
         data = json.loads(message)
@@ -111,53 +134,59 @@ class WSHandler(WebSocketHandler):
             elif 'username' in data and 'password' in data:
                 token = hashlib.sha512((data['username'] + '§' + data['password']).encode('utf-8')).hexdigest()
 
-            if token in admin_tokens:
-                WSHandler.admins.append(self)
-                WSHandler.viewers.remove(self)
-                logging.info("Viewer authenticated successfully, there are %d admins and %d viewers now",
-                             len(self.admins), len(self.viewers))
-                self.write_message(json.dumps({'event': 'authentication', 'status': 'success', 'token': token}))
+            if token in crew_tokens:
+                WSHandler.crew.append(self)
+                WSHandler.passengers.remove(self)
+                logging.info("Passenger authenticated successfully, there are %d crew members and %d passengers now",
+                             len(self.crew), len(self.passengers))
+                self.write_message(json.dumps({'authentication': 'successful', 'token': token}))
             else:
                 logging.info("Authentication failure")
-                self.write_message(json.dumps({'event': 'authentication', 'status': 'failure'}))
+                self.write_message(json.dumps({'authentication': 'failure'}))
         else:
-            boat.captain(data)
+            boat.crew(data)
 
     def check_origin(self, origin):
         return True
 
     @classmethod
-    def talk_to_admins(self, message):
-        logging.info('Sending a message to %d admins', len(self.admins))
-        serialized = json.dumps(message)
+    def talk_to_crew(self, message):
+        logging.info('Sending a message to %d crew', len(self.crew))
 
-        for client in self.admins:
-            try:
-                client.write_message(serialized)
-            except:
-                logging.error('Error sending message', exc_info=True)
+        if self.crew:
+            serialized = json.dumps(message)
+
+            for client in self.crew:
+                try:
+                    client.write_message(serialized)
+                except:
+                    logging.error('Error sending message', exc_info=True)
 
     @classmethod
-    def talk_to_viewers(self, message):
-        logging.info('Sending a message to %d viewers', len(self.viewers))
-        serialized = json.dumps(message)
+    def talk_to_passengers(self, message):
+        logging.info('Sending a message to %d passengers', len(self.passengers))
 
-        for client in self.viewers:
-            try:
-                client.write_message(serialized)
-            except:
-                logging.error('Error sending message', exc_info=True)
+        if self.passengers:
+            serialized = json.dumps(message)
+
+            for client in self.passengers:
+                try:
+                    client.write_message(serialized)
+                except:
+                    logging.error('Error sending message', exc_info=True)
 
     @classmethod
     def talk_to_all(self, message):
         logging.info('Sending a message to %d clients', len(self.clients))
-        serialized = json.dumps(message)
 
-        for client in self.clients:
-            try:
-                client.write_message(serialized)
-            except:
-                logging.error('Error sending message', exc_info=True)
+        if self.clients:
+            serialized = json.dumps(message)
+
+            for client in self.clients:
+                try:
+                    client.write_message(serialized)
+                except:
+                    logging.error('Error sending message', exc_info=True)
 
 
 class BoatPi:
@@ -180,9 +209,8 @@ class BoatPi:
             self.ws = yield websocket_connect(self.url)
         except:
             logging.info("BoatPi connection error")
-            WSHandler.talk_to_all("BoatPi connection error")
         else:
-            WSHandler.talk_to_all("BoatPi connected")
+            logging.info("BoatPi connected")
             self.run()
 
     @coroutine
@@ -191,19 +219,30 @@ class BoatPi:
             msg = yield self.ws.read_message()
             if msg is None:
                 self.ws = None
-                logging.info("BoatPi connection closed")
-                WSHandler.talk_to_all("BoatPi connection lost")
+                logging.info("BoatPi connection lost")
+
+                data = {'boat': None}
+                data['crew'] = len(WSHandler.crew)
+                data['passengers'] = len(WSHandler.passengers)
+
+                WSHandler.talk_to_all(data)
                 break
 
             self.on_message(msg)
 
-    def captain(self, message):
+    def crew(self, message):
         if self.ws is not None:
             self.ws.write_message(json.dumps(message))
 
     @coroutine
     def on_message(self, message):
         data = json.loads(message)
+
+        boatLogger.log(data)
+
+        data = {'boat': data}
+        data['crew'] = len(WSHandler.crew)
+        data['passengers'] = len(WSHandler.passengers)
 
         WSHandler.talk_to_all(data)
 
@@ -234,6 +273,7 @@ class Application(BaseApplication):
 
 if __name__ == "__main__":
     boat = BoatPi(app_settings["boatpi_ws"], 5)
+    boatLogger = MongoLogger()
 
     if app_settings["env"] == "dev":
         log.info("Starting applications", mode="single")

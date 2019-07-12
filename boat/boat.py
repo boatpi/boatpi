@@ -20,6 +20,9 @@ from tornado.web import Application as BaseApplication
 from tornado.web import RequestHandler, StaticFileHandler
 from tornado.websocket import WebSocketHandler
 
+from huawei_lte_api.Connection import Connection as ModemConnection
+from huawei_lte_api.Client import Client as ModemClient
+
 BUTTON_PIN = 17 # BCM
 BUTTON_PIN = 11 # BOARD
 RELAY_PINS = [19, 16, 26, 20, 13, 6, 5, 12] # BCM
@@ -93,11 +96,11 @@ class WSHandler(WebSocketHandler):
         data = json.loads(message)
 
         if 'power' in data:
-            Status.power = data['power']
+            GPIOHandler.set_power(data['power'])
             self.talk_to_clients({'power': Status.power})
 
         if 'wheel' in data:
-            Status.wheel = data['wheel']
+            GPIOHandler.set_wheel(data['wheel'])
             self.talk_to_clients({'wheel': Status.wheel})
 
 
@@ -120,7 +123,7 @@ class WSHandler(WebSocketHandler):
 
 
 class Status:
-    """A class that talks with the boat on the sea."""
+    """A class that stores all metadata like position, direction, power, load, signal, etc."""
 
     power = 0 # How many power give to the main boat's motor
     wheel = 0 # How is the boat's wheel set
@@ -137,15 +140,9 @@ class Status:
         data['cpu_load'] = psutil.cpu_percent(interval=1)
         data['memory'] = Status.get_memory_data()
         data['gps_position'] = GpsTracker.get_data()
+        data['modem'] = ModemHandler.status()
 
         WSHandler.talk_to_clients(data)
-
-        # Simulate that boat is moving
-        # TODO: Remove this before sail
-        GpsTracker.speed = Status.power/18630.547
-        GpsTracker.direction = Status.wheel
-        GpsTracker.latitude = GpsTracker.latitude+GpsTracker.speed*cos(GpsTracker.direction)
-        GpsTracker.longitude = GpsTracker.longitude+GpsTracker.speed*sin(GpsTracker.direction)
 
     @classmethod
     def get_memory_data(self):
@@ -159,8 +156,8 @@ class Status:
         }
 
 
-class GpsTracker(object):
-    """A class that talks GPS module and stores geographic position data."""
+class GpsTracker:
+    """Query GPS module and stores geographic position data."""
 
     latitude = 40.203636
     longitude = 16.728161
@@ -168,13 +165,70 @@ class GpsTracker(object):
     direction = 0.0
 
     @classmethod
+    def autopilot(self):
+        # Simulate that boat is moving
+        # TODO: Remove this before sail
+        GpsTracker.speed = Status.power/18630.547
+        GpsTracker.direction = GpsTracker.direction+Status.wheel/50
+        GpsTracker.latitude = GpsTracker.latitude+GpsTracker.speed*cos(GpsTracker.direction)
+        GpsTracker.longitude = GpsTracker.longitude+GpsTracker.speed*sin(GpsTracker.direction)
+
+    @classmethod
     def get_data(self):
+        self.autopilot()
+
         return {
             'latitude': GpsTracker.latitude,
             'longitude': GpsTracker.longitude,
             'speed': GpsTracker.speed,
             'direction': GpsTracker.direction,
         }
+
+
+class GPIOHandler:
+    """Read/Write raw data from/to GPIO"""
+
+    @classmethod
+    def set_power(self, value):
+        if value < -20 or value > 100:
+            return
+
+        # TODO: Set MOTOR power
+        Status.power = value
+
+    @classmethod
+    def set_wheel(self, value):
+        if value < -50 or value > 50:
+            return
+
+        # TODO: Set WHEEL position
+        Status.wheel = value
+
+    @coroutine
+    def watcher(self):
+        if not is_raspberry:
+            return
+
+        try:
+            while True:
+                pass
+
+        finally:
+            GPIO.cleanup()
+
+
+class ModemHandler:
+    """Handle LTE Modem"""
+
+    @classmethod
+    def status(self):
+        try:
+            connection = ModemConnection('http://192.168.8.1/')
+            client = ModemClient(connection)
+
+            return client.device.signal()
+        except:
+            pass
 
 
 class Application(BaseApplication):

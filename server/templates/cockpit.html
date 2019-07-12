@@ -1,72 +1,47 @@
 {% extends "layout.html" %}
 
 {% block css %}
-<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 <link rel="stylesheet" type="text/css" href="{{ static_url('slider.css') }}">
 <style type="text/css">
-    #ex1Slider .slider-selection {
-        background: #BABABA;
+    .tooltip.in {
+        opacity: 1;
     }
 </style>
 {% end %}
 
 {% block content %}
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="#">BoatPi</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
+<section id="loader">
+    Connecting ...
+</section>
 
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
-                <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">Link</a>
-            </li>
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown"
-                   aria-haspopup="true" aria-expanded="false">
-                    Dropdown
-                </a>
-                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="#">Action</a>
-                    <a class="dropdown-item" href="#">Another action</a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#">Something else here</a>
-                </div>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link disabled" href="#">Disabled</a>
-            </li>
-        </ul>
-        <form class="form-inline my-2 my-lg-0">
-            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-        </form>
-    </div>
-</nav>
-<div class="row">
-    <div style="background-color:#000; height: 600px;" class="col-md-9">
-
-    </div>
-    <div class="col-md-3">
-        {% module Template("modules/map.html") %}
-        <div class="row">
-            <input data-slider-step="0.1" id="timone" type="text"/>
-        </div>
-        <div class="row">
-            <input id="acceleratore" data-slider-step="0.1" type="text"/>
+<section id="cockpit" style="display: none;">
+    <div class="row">
+        <div class="col-md-9">
+            Passengers: <span id="passengers">0</span>
+            Crew: <span id="crew">0</span>
         </div>
     </div>
-</div>
+    <div class="row">
+        <div class="col-md-9">
+            <iframe width="100%" height="600" src="https://www.youtube.com/embed/4993sBLAzGA?autoplay=1" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+        <div class="col-md-3">
+            {% module Template("modules/map.html") %}
+            <p class="text-center">
+                <label for="wheel">Wheel</label><br/>
+                <input id="wheel" />
+            </p>
+            <p class="text-center">
+                <label for="power">Power</label><br/>
+                <input id="power" />
+            </p>
+        </div>
+    </div>
+</section>
 {% end %}
 
 {% block js %}
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"></script>
 <script type="text/javascript" src="{{ static_url('slider.js') }}"></script>
 <script type="text/javascript" src="{{ static_url('cockpit.js') }}"></script>
 {% end %}

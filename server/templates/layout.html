@@ -1,21 +1,22 @@
 <html>
 <head>
     <title>{% block title %}BoatPi{% end %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     {% block css %}{% end %}
 </head>
 <body>
-    <header>
-        {% block header %}{% end %}
-    </header>
-    <content>
+    {% module Template("modules/navbar.html") %}
+
+    <section class="container-fluid">
         {% block content %}{% end %}
-    </content>
-    <footer>
-        {% block footer %}{% end %}
+    </section>
+
+    <footer style="display: none">
+        {% block footer %}© BoatPi 2019{% end %}
     </footer>
 
-    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/jquery@3.4.1/dist/jquery.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     <script src="{{ static_url('boatpi.js') }}"></script>
     {% block js %}{% end %}
 </body>
