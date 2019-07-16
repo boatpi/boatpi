@@ -13,6 +13,7 @@ import structlog
 import time
 
 from math import sin, cos, pi
+from abc import abstractmethod
 
 from tornado import autoreload
 from tornado.gen import coroutine, sleep
@@ -133,8 +134,18 @@ class Status:
     power = 0 # How many power give to the main boat's motor
     wheel = 0 # How is the boat's wheel set
 
-    def __init__(self):
+    cpu_load = None
+    memory = None
+    modem = None
+    gps = None
+
+    def __init__(self, interval=1000):
         PeriodicCallback(self.collect, 1000).start()
+
+        CpuDataCollector(interval)
+        MemoryDataCollector(interval)
+        GpsTracker(interval)
+        ModemDataCollector(interval)
 
     @coroutine
     def collect(self):
@@ -142,17 +153,39 @@ class Status:
 
         data = dict()
 
-        data['cpu_load'] = psutil.cpu_percent(interval=1)
-        data['memory'] = Status.get_memory_data()
-        data['gps_position'] = GpsTracker.get_data()
-        data['modem'] = ModemHandler.status()
+        data['cpu_load'] = Status.cpu_load
+        data['memory'] = Status.memory
+        data['gps'] = Status.gps
+        data['modem'] = Status.modem
 
         WSHandler.talk_to_clients(data)
 
-    @classmethod
-    def get_memory_data(self):
+
+class DataCollector:
+    """Abstract class"""
+
+    def __init__(self, interval=100):
+        PeriodicCallback(self.run, interval).start()
+
+    @abstractmethod
+    def run(self):
+        pass
+
+
+class CpuDataCollector(DataCollector):
+    """Query GPS module and stores geographic position data."""
+
+    def run(self):
+        Status.cpu_load = psutil.cpu_percent(interval=1)
+
+
+class MemoryDataCollector(DataCollector):
+    """Query GPS module and stores geographic position data."""
+
+    def run(self):
         virtual = psutil.virtual_memory()
-        return {
+
+        Status.memory = {
             'total': virtual.total,
             'available': virtual.available,
             'used': virtual.used,
@@ -161,7 +194,7 @@ class Status:
         }
 
 
-class GpsTracker:
+class GpsTracker(DataCollector):
     """Query GPS module and stores geographic position data."""
 
     latitude = 40.203636
@@ -179,10 +212,10 @@ class GpsTracker:
         GpsTracker.longitude = GpsTracker.longitude+GpsTracker.speed*sin(GpsTracker.direction)
 
     @classmethod
-    def get_data(self):
+    def run(self):
         self.autopilot()
 
-        return {
+        Status.gps = {
             'latitude': GpsTracker.latitude,
             'longitude': GpsTracker.longitude,
             'speed': GpsTracker.speed,
@@ -222,7 +255,7 @@ class GPIOHandler:
             GPIO.cleanup()
 
 
-class ModemHandler:
+class ModemDataCollector(DataCollector):
     """Handle LTE Modem"""
 
     @classmethod
