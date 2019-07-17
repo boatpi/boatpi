@@ -10,6 +10,12 @@ $(() => {
     const passengers = $("#passengers");
     const crew = $("#crew");
 
+    /* modem */
+    const modem = $("#modem");
+    const sinr = $("#sinr");
+    const rsrp = $("#rsrp");
+    const rsrq = $("#rsrq");
+
     const initialPosition = [41.9027835, 12.496365500000024];
     const map = L.map('mapid').setView(initialPosition, 16);
     const marker = L.marker(initialPosition).addTo(map);
@@ -47,10 +53,30 @@ $(() => {
                 power.slider('setValue', Number(boat.power));
             }
 
-            if ('gps_position' in boat) {
-                let position = [boat.gps_position.latitude, boat.gps_position.longitude];
+            if ('gps' in boat && boat.gps instanceof Object) {
+                let position = [boat.gps.latitude, boat.gps.longitude];
                 marker.setLatLng(position);
                 map.setView(position);
+            }
+
+            if ('modem' in boat && boat.modem instanceof Object) {
+                if (boat.modem.sinr) {
+                    sinr.find('.progress-bar').text(boat.modem.sinr + '%').width(boat.modem.sinr + '%');
+                } else {
+                    sinr.find('.progress-bar').text('None').width(0);
+                }
+
+                if (boat.modem.rsrp) {
+                    rsrp.find('.progress-bar').text(boat.modem.rsrp + '%').width(boat.modem.rsrp + '%');
+                } else {
+                    rsrp.find('.progress-bar').text('None').width(0);
+                }
+
+                if (boat.modem.rsrq) {
+                    rsrq.find('.progress-bar').text(boat.modem.rsrq + '%').width(boat.modem.rsrq + '%');
+                } else {
+                    rsrq.find('.progress-bar').text('None').width(0);
+                }
             }
         }
     });

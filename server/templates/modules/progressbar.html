@@ -1,0 +1,21 @@
+{% try %}
+    {% set id = id %}
+{% except NameError %}
+    {% set id = '' %}
+{% end %}
+
+{% try %}
+    {% set style = style %}
+{% except NameError %}
+    {% set style = 'success' %}
+{% end %}
+
+{% try %}
+    {% set value = value %}
+{% except NameError %}
+    {% set value = 0 %}
+{% end %}
+
+<div id="{{ id }}" class="progress">
+    <div class="progress-bar bg-{{ style }}" style="width: {{ value }}%">{{ value }}%</div>
+</div>

@@ -157,41 +157,25 @@ class WSHandler(WebSocketHandler):
     @classmethod
     def talk_to_crew(self, message):
         logging.info('Sending a message to %d crew', len(self.crew))
-
-        if self.crew:
-            serialized = json.dumps(message)
-
-            for client in self.crew:
-                try:
-                    client.write_message(serialized)
-                except:
-                    logging.error('Error sending message', exc_info=True)
+        WSHandler.__talk_to(self.crew, message)
 
     @classmethod
     def talk_to_passengers(self, message):
         logging.info('Sending a message to %d passengers', len(self.passengers))
-
-        if self.passengers:
-            serialized = json.dumps(message)
-
-            for client in self.passengers:
-                try:
-                    client.write_message(serialized)
-                except:
-                    logging.error('Error sending message', exc_info=True)
+        WSHandler.__talk_to(self.passengers, message)
 
     @classmethod
     def talk_to_all(self, message):
         logging.info('Sending a message to %d clients', len(self.clients))
+        WSHandler.__talk_to(self.clients, message)
 
-        if self.clients:
+    @classmethod
+    def __talk_to(self, clients, message):
+        if self.passengers:
             serialized = json.dumps(message)
 
-            for client in self.clients:
-                try:
-                    client.write_message(serialized)
-                except:
-                    logging.error('Error sending message', exc_info=True)
+            for client in clients:
+                client.write_message(serialized)
 
 
 class BoatPi:
