@@ -90,6 +90,7 @@ class WSHandler(WebSocketHandler):
         return {}
 
     def open(self):
+        self.set_nodelay(True)
         WSHandler.clients.append(self)
         logging.info("A new client connected, there are %d clients connected", len(self.clients))
 

@@ -110,6 +110,7 @@ class WSHandler(WebSocketHandler):
         return {}
 
     def open(self):
+        self.set_nodelay(True)
         WSHandler.clients.append(self)
         WSHandler.passengers.append(self)
         logging.info("A new client connected from %s, there are %d crew members and %d passengers connected", self.request.remote_ip, len(self.crew),
