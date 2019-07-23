@@ -1,5 +1,12 @@
 $(() => {
     "use strict";
+
+    // Check for WebSocket support
+    if (!("WebSocket" in window)) {
+        alert("Sorry, this browser does not support WebSockets.");
+        return;
+    }
+
     const webSocketProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const webSocketUri = webSocketProtocol + '//' + location.hostname + ':' + location.port + '/ws';
 

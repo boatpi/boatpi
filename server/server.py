@@ -85,6 +85,18 @@ class CockpitHandler(RequestHandler):
         pass
 
 
+class StreamHandler(RequestHandler):
+
+    async def get(self, *args, **kwargs):
+        """A function that will return the content for the home endpoint."""
+
+        self.render("stream.html")
+
+    def data_received(self, chunk):
+        """Defined to avoid abstract-method lint issue."""
+        pass
+
+
 class MongoLogger():
     last = dict()
 
@@ -113,8 +125,7 @@ class WSHandler(WebSocketHandler):
         self.set_nodelay(True)
         WSHandler.clients.append(self)
         WSHandler.passengers.append(self)
-        logging.info("A new client connected from %s, there are %d crew members and %d passengers connected", self.request.remote_ip, len(self.crew),
-                     len(self.passengers))
+        logging.info("A new client connected from %s, there are %d crew members and %d passengers connected", self.request.remote_ip, len(self.crew), len(self.passengers))
         self.write_message({
             'boat': boatLogger.last if (boat.ws is not None) else None,
             'crew': len(self.crew),
@@ -256,6 +267,7 @@ class Application(BaseApplication):
             ("/", HomeHandler),
             ("/ws", WSHandler),
             ("/cockpit", CockpitHandler),
+            ("/stream", StreamHandler),
         ]
 
         app_settings["ui_modules"] = uimodules
@@ -270,6 +282,7 @@ if __name__ == "__main__":
     if app_settings["env"] == "dev":
         log.info("Starting applications", mode="single")
         Application().listen(app_settings["port"])
+
         autoreload.start()
         autoreload.watch(r'assets/')
         autoreload.watch(r'templates/')
