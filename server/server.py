@@ -112,7 +112,7 @@ class WSHandler(WebSocketHandler):
     def open(self):
         WSHandler.clients.append(self)
         WSHandler.passengers.append(self)
-        logging.info("A new client connected, there are %d crew members and %d passengers connected", len(self.crew),
+        logging.info("A new client connected from %s, there are %d crew members and %d passengers connected", self.request.remote_ip, len(self.crew),
                      len(self.passengers))
         self.write_message({
             'boat': boatLogger.last if (boat.ws is not None) else None,
@@ -142,7 +142,7 @@ class WSHandler(WebSocketHandler):
             if token in crew_tokens:
                 WSHandler.crew.append(self)
                 WSHandler.passengers.remove(self)
-                logging.info("Passenger authenticated successfully, there are %d crew members and %d passengers now",
+                logging.info("Crew member authenticated successfully, there are %d crew members and %d passengers now",
                              len(self.crew), len(self.passengers))
                 self.write_message(json.dumps({'authentication': 'successful', 'token': token}))
             else:
@@ -156,17 +156,14 @@ class WSHandler(WebSocketHandler):
 
     @classmethod
     def talk_to_crew(self, message):
-        logging.info('Sending a message to %d crew', len(self.crew))
         WSHandler.__talk_to(self.crew, message)
 
     @classmethod
     def talk_to_passengers(self, message):
-        logging.info('Sending a message to %d passengers', len(self.passengers))
         WSHandler.__talk_to(self.passengers, message)
 
     @classmethod
     def talk_to_all(self, message):
-        logging.info('Sending a message to %d clients', len(self.clients))
         WSHandler.__talk_to(self.clients, message)
 
     @classmethod
@@ -175,7 +172,12 @@ class WSHandler(WebSocketHandler):
             serialized = json.dumps(message)
 
             for client in clients:
-                client.write_message(serialized)
+                try:
+                    client.write_message(serialized)
+                except:
+                    WSHandler.clients.remove(client)
+                    WSHandler.crew.remove(client)
+                    WSHandler.passengers.remove(client)
 
 
 class BoatPi:

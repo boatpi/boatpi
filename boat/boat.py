@@ -125,6 +125,7 @@ class WSHandler(WebSocketHandler):
             try:
                 client.write_message(serialized)
             except:
+                WSHandler.clients.remove(client)
                 logging.error('Error sending message', exc_info=True)
 
 
