@@ -16,6 +16,10 @@ $(() => {
     const rsrp = $("#rsrp");
     const rsrq = $("#rsrq");
 
+    const cpu = $("#cpu");
+    const ram = $("#ram");
+    const batt = $("#batt");
+
     const initialPosition = [41.9027835, 12.496365500000024];
     const map = L.map('mapid').setView(initialPosition, 16);
     const marker = L.marker(initialPosition).addTo(map);
@@ -57,6 +61,18 @@ $(() => {
                 let position = [boat.gps.latitude, boat.gps.longitude];
                 marker.setLatLng(position);
                 map.setView(position);
+            }
+
+            if ('cpu_load' in boat) {
+                cpu.find('.progress-bar').text(boat.cpu_load + '%').width(boat.cpu_load + '%');
+            }
+
+            if ('memory' in boat && boat.memory instanceof Object) {
+                ram.find('.progress-bar').text(boat.memory.percentage + '%').width(boat.memory.percentage + '%');
+            }
+
+            if ('battery' in boat && boat.modem instanceof Object) {
+                // TODO: Show battery load and charge status
             }
 
             if ('modem' in boat && boat.modem instanceof Object) {

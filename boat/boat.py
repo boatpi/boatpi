@@ -191,7 +191,7 @@ class MemoryDataCollector(DataCollector):
             'available': virtual.available,
             'used': virtual.used,
             'free': virtual.free,
-            'percent': virtual.percent,
+            'percentage': virtual.percent,
         }
 
 
