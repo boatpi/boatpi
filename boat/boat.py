@@ -283,6 +283,10 @@ class Application(BaseApplication):
 
         super().__init__(app_handlers, **app_settings)
 
+    def log_request(self, request):
+        """Override default to avoid logging requests"""
+        pass
+
 
 if __name__ == "__main__":
     status = Status()

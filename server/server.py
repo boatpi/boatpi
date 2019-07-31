@@ -94,10 +94,14 @@ class MongoLogger():
         self.collection = self.db["logs"]
 
     def log(self, data):
-        self.last = dict(self.last)
         self.last.update(data)
 
-        self.collection.insert_one(self.last.copy())
+        self.collection.insert_one(data)
+
+    def clear_logs(self):
+        """Dops all logs data. USE WITH CAUTION"""
+
+        self.collection.drop()
 
 
 class WSHandler(WebSocketHandler):
@@ -113,8 +117,7 @@ class WSHandler(WebSocketHandler):
         self.set_nodelay(True)
         WSHandler.clients.append(self)
         WSHandler.passengers.append(self)
-        logging.info("A new client connected from %s, there are %d crew members and %d passengers connected", self.request.remote_ip, len(self.crew),
-                     len(self.passengers))
+        logging.info("A new client connected from %s, there are %d crew members and %d passengers connected", self.request.remote_ip, len(self.crew), len(self.passengers))
         self.write_message({
             'boat': boatLogger.last if (boat.ws is not None) else None,
             'crew': len(self.crew),
@@ -262,14 +265,21 @@ class Application(BaseApplication):
 
         super().__init__(app_handlers, **app_settings)
 
+    def log_request(self, request):
+        """Override default to avoid logging requests"""
+        pass
+
 
 if __name__ == "__main__":
     boat = BoatPi(app_settings["boatpi_ws"], 5)
     boatLogger = MongoLogger()
 
     if app_settings["env"] == "dev":
+        boatLogger.clear_logs()
+
         log.info("Starting applications", mode="single")
         Application().listen(app_settings["port"])
+
         autoreload.start()
         autoreload.watch(r'assets/')
         autoreload.watch(r'templates/')
